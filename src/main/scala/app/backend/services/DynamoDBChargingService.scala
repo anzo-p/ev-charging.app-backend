@@ -3,11 +3,11 @@ package app.backend.services
 import app.backend.ChargingService
 import app.backend.types.chargingSession.ChargingSession.mayTransitionTo
 import app.backend.types.chargingSession.{ChargingSession, ChargingSessionsOfCustomer}
-import outlet.backend.types.ChargerOutlet.Ops.cannotTransitionTo
 import shared.db.DynamoDBPrimitives
-import shared.types.TimeExtensions.DateTimeSchemaImplicits
+import shared.types.TimeExtensions._
 import shared.types.enums.OutletDeviceState
-import shared.types.outletStatus.OutletStatusEvent
+import shared.types.enums.OutletDeviceState._
+import shared.types.outletStatus._
 import zio._
 import zio.dynamodb.DynamoDBQuery._
 import zio.dynamodb.PartitionKeyExpression.PartitionKey
