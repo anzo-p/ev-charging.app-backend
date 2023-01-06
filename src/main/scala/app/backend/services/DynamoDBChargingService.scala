@@ -5,9 +5,9 @@ import app.backend.types.chargingSession.ChargingSession.mayTransitionTo
 import app.backend.types.chargingSession.{ChargingSession, ChargingSessionsOfCustomer}
 import shared.db.DynamoDBPrimitives
 import shared.types.TimeExtensions._
+import shared.types.chargingEvent.ChargingEvent
 import shared.types.enums.OutletDeviceState
 import shared.types.enums.OutletDeviceState._
-import shared.types.outletStatus._
 import zio._
 import zio.dynamodb.DynamoDBQuery._
 import zio.dynamodb.PartitionKeyExpression.PartitionKey
@@ -22,7 +22,7 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
     with DynamoDBPrimitives[ChargingSession]
     with DateTimeSchemaImplicits {
 
-  val tableResource = "ev-outlet-app.charging-session.table"
+  val tableResource = "ev-charging_charging-session_table"
   val primaryKey    = "sessionId"
 
   override def schema: Schema[ChargingSession] = DeriveSchema.gen[ChargingSession]
@@ -30,7 +30,7 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
   private def getActiveSessions(customerId: UUID): ZIO[DynamoDBExecutor, Throwable, Int] =
     for {
       query <- queryAll[ChargingSessionsOfCustomer](tableResource, $("customerId"), $("sessionId"), $("sessionState"))
-                .indexName("ev-outlet-app.charging-session-customerId.index")
+                .indexName("ev-charging_charging-session-customerId_index")
                 .whereKey(PartitionKey("customerId") === customerId.toString)
                 .execute
 
@@ -67,7 +67,7 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
     getByPK(sessionId)
       .provideLayer(ZLayer.succeed(executor))
 
-  override def aggregateSessionTotals(status: OutletStatusEvent): Task[Unit] =
+  override def aggregateSessionTotals(status: ChargingEvent): Task[Unit] =
     (for {
       sessionId <- ZIO.from(status.recentSession.sessionId).orElseFail(new Error("no session id"))
       data      <- getByPK(sessionId).filterOrFail(mayTransitionTo(status.outletState))(new Error(cannotTransitionTo(status.outletState)))

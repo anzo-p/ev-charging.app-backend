@@ -14,7 +14,7 @@ import java.util.UUID
 
 final case class DynamoDBCustomerService(executor: DynamoDBExecutor) extends CustomerService with DynamoDBPrimitives[Customer] {
 
-  val tableResource = "ev-outlet-app.customer.table"
+  val tableResource = "ev-charging_customer_table"
   val primaryKey    = "customerId"
 
   override val schema: Schema[Customer] = DeriveSchema.gen[Customer]
@@ -44,7 +44,7 @@ final case class DynamoDBCustomerService(executor: DynamoDBExecutor) extends Cus
   override def getCustomerIdByRfidTag(rfidTag: String): Task[Option[UUID]] =
     (for {
       query <- queryAll[CustomerIdAndRfidTag](tableResource, $("customerId"), $("rfidTag"))
-                .indexName("ev-outlet-app.customer-rfidTag.index")
+                .indexName("ev-charging_customer-rfidTag_index")
                 .whereKey(PartitionKey("rfidTag") === rfidTag)
                 .execute
 

@@ -2,29 +2,28 @@ package app.backend.events
 
 import app.backend.types.chargingSession.ChargingSession
 import app.backend.{ChargingService, CustomerService}
-import nl.vroste.zio.kinesis.client.Record
-import shared.events.{DeadLetterProducer, OutletEventConsumer, OutletEventProducer}
-import shared.types.enums.{OutletDeviceState, OutletStateRequester}
-import shared.types.outletStatus.OutletStatusEvent
+import shared.events.{ChargingEventConsumer, ChargingEventProducer, DeadLetterProducer}
+import shared.types.chargingEvent.ChargingEvent
+import shared.types.enums.{EventInitiator, OutletDeviceState}
 import zio._
 
-final case class AppEndOutletEventConsumer(
+final case class KinesisChargingEventsIn(
     customerService: CustomerService,
     chargingService: ChargingService,
-    correspondent: OutletEventProducer,
+    correspondent: ChargingEventProducer,
     deadLetters: DeadLetterProducer
-  ) extends OutletEventConsumer {
+  ) extends ChargingEventConsumer {
 
   val applicationName: String = "app-backend"
 
-  def follow: OutletStateRequester = OutletStateRequester.OutletDevice
+  def follow: EventInitiator = EventInitiator.OutletDevice
 
-  def consume(record: Record[OutletStatusEvent]): Task[Unit] =
-    record.data.outletState match {
+  def consume(data: ChargingEvent): Task[Unit] =
+    data.outletState match {
       case OutletDeviceState.ChargingRequested =>
         for {
-          customerId <- customerService.getCustomerIdByRfidTag(record.data.recentSession.rfidTag)
-          session    <- ZIO.from(ChargingSession.fromEvent(customerId.get, record.data).copy(sessionState = OutletDeviceState.Charging))
+          customerId <- customerService.getCustomerIdByRfidTag(data.recentSession.rfidTag)
+          session    <- ZIO.from(ChargingSession.fromEvent(customerId.get, data).copy(sessionState = OutletDeviceState.Charging))
           _          <- chargingService.initialize(session)
           _          <- correspondent.put(session.toEvent)
           // else NACK
@@ -32,12 +31,12 @@ final case class AppEndOutletEventConsumer(
 
       case OutletDeviceState.Charging =>
         for {
-          _ <- chargingService.aggregateSessionTotals(record.data.copy(outletState = OutletDeviceState.Charging))
+          _ <- chargingService.aggregateSessionTotals(data.copy(outletState = OutletDeviceState.Charging))
         } yield ()
 
       case OutletDeviceState.Finished =>
         for {
-          _ <- chargingService.aggregateSessionTotals(record.data.copy(outletState = OutletDeviceState.Finished))
+          _ <- chargingService.aggregateSessionTotals(data.copy(outletState = OutletDeviceState.Finished))
         } yield ()
       case state =>
         for {
@@ -46,11 +45,11 @@ final case class AppEndOutletEventConsumer(
     }
 }
 
-object AppEndOutletEventConsumer {
+object KinesisChargingEventsIn {
 
   val live
-      : ZLayer[CustomerService with ChargingService with OutletEventProducer with DeadLetterProducer, Nothing, AppEndOutletEventConsumer] =
-    ZLayer.fromFunction(AppEndOutletEventConsumer.apply _)
+      : ZLayer[CustomerService with ChargingService with ChargingEventProducer with DeadLetterProducer, Nothing, KinesisChargingEventsIn] =
+    ZLayer.fromFunction(KinesisChargingEventsIn.apply _)
 }
 
 /*

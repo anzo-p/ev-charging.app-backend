@@ -1,10 +1,10 @@
 package app.backend
 
-import app.backend.events.AppEndOutletEventConsumer
+import app.backend.events.KinesisChargingEventsIn
 import app.backend.http.{AppServer, ChargingRoutes, CustomerRoutes}
 import app.backend.services.{DynamoDBChargingService, DynamoDBCustomerService}
 import nl.vroste.zio.kinesis.client.zionative.leaserepository.DynamoDbLeaseRepository
-import shared.events.{DeadLetterProducer, OutletEventProducer}
+import shared.events.kinesis.{KinesisChargingEventsOut, KinesisDeadLetters}
 import zio._
 import zio.aws.core.config.AwsConfig
 import zio.aws.dynamodb.DynamoDb
@@ -15,7 +15,7 @@ import zio.dynamodb.DynamoDBExecutor
 object Main extends ZIOAppDefault {
 
   val program =
-    ZIO.serviceWithZIO[AppServer](_.start).zipPar(ZIO.serviceWithZIO[AppEndOutletEventConsumer](_.start))
+    ZIO.serviceWithZIO[AppServer](_.start).zipPar(ZIO.serviceWithZIO[KinesisChargingEventsIn](_.start))
 
   val setup =
     program
@@ -29,13 +29,13 @@ object Main extends ZIOAppDefault {
         DynamoDBCustomerService.live,
         DynamoDBExecutor.live,
         // kinesis
-        AppEndOutletEventConsumer.live,
-        DeadLetterProducer.live,
-        DeadLetterProducer.make,
         DynamoDbLeaseRepository.live,
         Kinesis.live,
-        OutletEventProducer.live,
-        OutletEventProducer.make,
+        KinesisChargingEventsIn.live,
+        KinesisChargingEventsOut.live,
+        KinesisChargingEventsOut.make,
+        KinesisDeadLetters.live,
+        KinesisDeadLetters.make,
         // http
         AppServer.live,
         ChargingRoutes.live,

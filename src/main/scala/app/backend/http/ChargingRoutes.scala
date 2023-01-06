@@ -2,14 +2,14 @@ package app.backend.http
 
 import app.backend.http.dto.{ChargingSessionDto, CreateChargingSessionDto}
 import app.backend.{ChargingService, CustomerService}
-import shared.events.OutletEventProducer
+import shared.events.ChargingEventProducer
 import shared.http.BaseRoutes
 import shared.validation.InputValidation._
 import zhttp.http._
 import zio._
 import zio.json.{DecoderOps, EncoderOps}
 
-final case class ChargingRoutes(customerService: CustomerService, chargingService: ChargingService, outletProducer: OutletEventProducer)
+final case class ChargingRoutes(customerService: CustomerService, chargingService: ChargingService, outletProducer: ChargingEventProducer)
     extends BaseRoutes {
 
   val routes: Http[Any, Throwable, Request, Response] =
@@ -77,6 +77,6 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
 
 object ChargingRoutes {
 
-  val live: ZLayer[CustomerService with ChargingService with OutletEventProducer, Nothing, ChargingRoutes] =
+  val live: ZLayer[CustomerService with ChargingService with ChargingEventProducer, Nothing, ChargingRoutes] =
     ZLayer.fromFunction(ChargingRoutes.apply _)
 }
