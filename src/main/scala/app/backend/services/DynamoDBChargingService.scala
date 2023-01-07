@@ -37,9 +37,8 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
       result <- query
                  .runCollect
                  .map(
-                   _.toList
-                     .count(_.sessionState.in(
-                       Seq(OutletDeviceState.ChargingRequested, OutletDeviceState.Charging, OutletDeviceState.StoppingRequested))))
+                   _.toList.count(_.sessionState.in(
+                     Seq(OutletDeviceState.AppRequestsCharging, OutletDeviceState.Charging, OutletDeviceState.AppRequestsStop))))
     } yield result
 
   override def getHistory(customerId: UUID): Task[List[ChargingSession]] =
@@ -83,7 +82,7 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
       .provideLayer(ZLayer.succeed(executor))
 
   override def setStopRequested(sessionId: UUID): Task[Unit] = {
-    val targetState = OutletDeviceState.StoppingRequested
+    val targetState = OutletDeviceState.AppRequestsStop
     (for {
       data <- getByPK(sessionId).filterOrFail(mayTransitionTo(targetState))(new Error(cannotTransitionTo(targetState)))
       _    <- putByPK(data.copy(sessionState = targetState))

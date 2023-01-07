@@ -20,7 +20,7 @@ final case class KinesisChargingEventsIn(
 
   def consume(data: ChargingEvent): Task[Unit] =
     data.outletState match {
-      case OutletDeviceState.ChargingRequested =>
+      case OutletDeviceState.DeviceRequestsCharging =>
         for {
           customerId <- customerService.getCustomerIdByRfidTag(data.recentSession.rfidTag)
           session    <- ZIO.from(ChargingSession.fromEvent(customerId.get, data).copy(sessionState = OutletDeviceState.Charging))

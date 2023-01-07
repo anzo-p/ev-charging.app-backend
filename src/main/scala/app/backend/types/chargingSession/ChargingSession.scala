@@ -46,7 +46,7 @@ object ChargingSession extends DateTimeSchemaImplicits {
       customerId       = customerId,
       rfidTag          = "",
       outletId         = outletId,
-      sessionState     = OutletDeviceState.ChargingRequested,
+      sessionState     = OutletDeviceState.AppRequestsCharging,
       purchaseChannel  = purchaseChannel,
       startTime        = java.time.OffsetDateTime.now(),
       endTime          = None,
