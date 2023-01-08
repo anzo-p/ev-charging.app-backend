@@ -4,12 +4,13 @@ import app.backend.http.dto.{ChargingSessionDto, CreateChargingSessionDto}
 import app.backend.{ChargingService, CustomerService}
 import shared.events.ChargingEventProducer
 import shared.http.BaseRoutes
+import shared.types.enums.OutletDeviceState
 import shared.validation.InputValidation._
 import zhttp.http._
 import zio._
 import zio.json.{DecoderOps, EncoderOps}
 
-final case class ChargingRoutes(customerService: CustomerService, chargingService: ChargingService, outletProducer: ChargingEventProducer)
+final case class ChargingRoutes(customerService: CustomerService, chargingService: ChargingService, toBackend: ChargingEventProducer)
     extends BaseRoutes {
 
   val routes: Http[Any, Throwable, Request, Response] =
@@ -36,7 +37,7 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
           rfidTag <- customerService.getRfidTag(dto.customerId).orElseFail(invalidPayload("this customer doesn't exist"))
           session = dto.toModel.copy(rfidTag = rfidTag)
           _ <- chargingService.initialize(session).mapError(th => badRequest(th.getMessage))
-          _ <- outletProducer.put(session.toEvent).mapError(serverError)
+          _ <- toBackend.put(session.toEvent).mapError(serverError)
           // app will forward to poll for status reports
         } yield {
           Response(
@@ -67,7 +68,7 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
           sessionId <- validateUUID(id, "session").toEither.orFail(unProcessableEntity)
           session   <- chargingService.getSession(sessionId).mapError(th => badRequest(th.getMessage))
           _         <- chargingService.setStopRequested(session.sessionId).mapError(th => badRequest(th.getMessage))
-          _         <- outletProducer.put(session.toEvent).mapError(serverError)
+          _         <- toBackend.put(session.toEvent.copy(outletState = OutletDeviceState.AppRequestsStop)).mapError(serverError)
           // app will forward to poll for final report
         } yield {
           Response(Status.Ok, defaultHeaders)

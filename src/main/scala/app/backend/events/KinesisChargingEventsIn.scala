@@ -10,7 +10,7 @@ import zio._
 final case class KinesisChargingEventsIn(
     customerService: CustomerService,
     chargingService: ChargingService,
-    correspondent: ChargingEventProducer,
+    toBackend: ChargingEventProducer,
     deadLetters: DeadLetterProducer
   ) extends ChargingEventConsumer {
 
@@ -25,7 +25,7 @@ final case class KinesisChargingEventsIn(
           customerId <- customerService.getCustomerIdByRfidTag(data.recentSession.rfidTag)
           session    <- ZIO.from(ChargingSession.fromEvent(customerId.get, data).copy(sessionState = OutletDeviceState.Charging))
           _          <- chargingService.initialize(session)
-          _          <- correspondent.put(session.toEvent)
+          _          <- toBackend.put(session.toEvent)
           // else NACK
         } yield ()
 
@@ -34,9 +34,9 @@ final case class KinesisChargingEventsIn(
           _ <- chargingService.aggregateSessionTotals(data.copy(outletState = OutletDeviceState.Charging))
         } yield ()
 
-      case OutletDeviceState.Finished =>
+      case OutletDeviceState.ChargingFinished =>
         for {
-          _ <- chargingService.aggregateSessionTotals(data.copy(outletState = OutletDeviceState.Finished))
+          _ <- chargingService.aggregateSessionTotals(data.copy(outletState = OutletDeviceState.ChargingFinished))
         } yield ()
       case state =>
         for {
