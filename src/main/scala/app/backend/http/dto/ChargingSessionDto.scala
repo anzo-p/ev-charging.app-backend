@@ -42,7 +42,7 @@ object ChargingSessionDto {
       sessionId        = model.sessionId,
       customerId       = model.customerId,
       outletId         = model.outletId,
-      state            = model.sessionState.entryName,
+      state            = model.outletState.entryName,
       purchaseChannel  = model.purchaseChannel.entryName,
       startTime        = model.startTime,
       endTime          = model.endTime,

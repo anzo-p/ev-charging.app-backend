@@ -2,8 +2,8 @@ package app.backend.types.chargingSession
 
 import shared.types.TimeExtensions.DateTimeSchemaImplicits
 import shared.types.chargingEvent.{ChargingEvent, EventSession}
-import shared.types.enums.OutletDeviceState.getPreStatesTo
 import shared.types.enums.{EventInitiator, OutletDeviceState, PurchaseChannel}
+import shared.types.outletStateMachine.OutletStateMachine
 import zio.schema.{DeriveSchema, Schema}
 
 import java.util.UUID
@@ -13,18 +13,18 @@ final case class ChargingSession(
     customerId: UUID,
     rfidTag: String,
     outletId: UUID,
-    sessionState: OutletDeviceState,
+    outletState: OutletDeviceState,
     purchaseChannel: PurchaseChannel,
     startTime: java.time.OffsetDateTime,
     endTime: Option[java.time.OffsetDateTime],
     powerConsumption: Double
-  ) {
+  ) extends OutletStateMachine {
 
   def toEvent: ChargingEvent =
     ChargingEvent(
       initiator   = EventInitiator.Application,
       outletId    = outletId,
-      outletState = sessionState,
+      outletState = outletState,
       recentSession = EventSession(
         sessionId        = Some(sessionId),
         rfidTag          = rfidTag,
@@ -46,7 +46,7 @@ object ChargingSession extends DateTimeSchemaImplicits {
       customerId       = customerId,
       rfidTag          = "",
       outletId         = outletId,
-      sessionState     = OutletDeviceState.AppRequestsCharging,
+      outletState      = OutletDeviceState.AppRequestsCharging,
       purchaseChannel  = purchaseChannel,
       startTime        = java.time.OffsetDateTime.now(),
       endTime          = None,
@@ -59,13 +59,10 @@ object ChargingSession extends DateTimeSchemaImplicits {
       customerId       = customerId,
       rfidTag          = event.recentSession.rfidTag,
       outletId         = event.outletId,
-      sessionState     = event.outletState,
+      outletState      = event.outletState,
       purchaseChannel  = PurchaseChannel.OutletDevice,
       startTime        = event.recentSession.periodStart,
       endTime          = event.recentSession.periodEnd,
       powerConsumption = event.recentSession.powerConsumption
     )
-
-  def mayTransitionTo(nextState: OutletDeviceState): ChargingSession => Boolean =
-    _.sessionState.in(getPreStatesTo(nextState))
 }
