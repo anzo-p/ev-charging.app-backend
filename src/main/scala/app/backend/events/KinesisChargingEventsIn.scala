@@ -16,7 +16,7 @@ final case class KinesisChargingEventsIn(
 
   val applicationName: String = "app-backend"
 
-  def follow: EventInitiator = EventInitiator.OutletDevice
+  def follow: EventInitiator = EventInitiator.OutletBackend
 
   def consume(data: ChargingEvent): Task[Unit] =
     data.outletState match {

@@ -22,7 +22,7 @@ final case class ChargingSession(
 
   def toEvent: ChargingEvent =
     ChargingEvent(
-      initiator   = EventInitiator.Application,
+      initiator   = EventInitiator.AppBackend,
       outletId    = outletId,
       outletState = outletState,
       recentSession = EventSession(
