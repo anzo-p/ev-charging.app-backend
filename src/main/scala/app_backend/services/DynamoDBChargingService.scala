@@ -1,7 +1,8 @@
-package app.backend.services
+package app_backend.services
 
-import app.backend.ChargingService
-import app.backend.types.chargingSession.{ChargingSession, ChargingSessionsOfCustomer}
+import app_backend.ChargingService
+import app_backend.types.chargingSession.ChargingSession
+import app_backend.types.chargingSession.ChargingSessionProjections.ChargingSessionsOfCustomer
 import shared.db.DynamoDBPrimitives
 import shared.types.TimeExtensions._
 import shared.types.chargingEvent.ChargingEvent

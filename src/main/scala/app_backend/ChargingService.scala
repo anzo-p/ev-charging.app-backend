@@ -1,6 +1,6 @@
-package app.backend
+package app_backend
 
-import app.backend.types.chargingSession.ChargingSession
+import app_backend.types.chargingSession.ChargingSession
 import shared.types.chargingEvent.ChargingEvent
 import zio.Task
 

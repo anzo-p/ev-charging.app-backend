@@ -1,7 +1,7 @@
-package app.backend.http
+package app_backend.http
 
-import app.backend.CustomerService
-import app.backend.http.dto.CreateCustomer
+import app_backend.CustomerService
+import app_backend.http.dto.CreateCustomer
 import shared.http.BaseRoutes
 import shared.validation.InputValidation.validateUUID
 import zhttp.http._

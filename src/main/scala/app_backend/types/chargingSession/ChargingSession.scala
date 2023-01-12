@@ -1,4 +1,4 @@
-package app.backend.types.chargingSession
+package app_backend.types.chargingSession
 
 import shared.types.TimeExtensions.DateTimeSchemaImplicits
 import shared.types.chargingEvent.{ChargingEvent, EventSession}
@@ -20,7 +20,7 @@ final case class ChargingSession(
     powerConsumption: Double
   ) extends OutletStateMachine {
 
-  def toEvent: ChargingEvent =
+  def toChargingEvent: ChargingEvent =
     ChargingEvent(
       initiator   = EventInitiator.AppBackend,
       outletId    = outletId,
@@ -53,7 +53,7 @@ object ChargingSession extends DateTimeSchemaImplicits {
       powerConsumption = 0.0
     )
 
-  def fromEvent(customerId: UUID, event: ChargingEvent): ChargingSession =
+  def fromChargingEvent(customerId: UUID, event: ChargingEvent): ChargingSession =
     ChargingSession(
       sessionId        = event.recentSession.sessionId.getOrElse(UUID.randomUUID()),
       customerId       = customerId,

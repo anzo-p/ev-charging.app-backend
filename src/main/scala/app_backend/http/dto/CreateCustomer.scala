@@ -1,6 +1,6 @@
-package app.backend.http.dto
+package app_backend.http.dto
 
-import app.backend.types.customer._
+import app_backend.types.customer.Customer
 import zio.json.{DeriveJsonCodec, JsonCodec}
 
 import java.util.UUID

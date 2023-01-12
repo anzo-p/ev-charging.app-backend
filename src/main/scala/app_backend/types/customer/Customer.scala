@@ -1,4 +1,4 @@
-package app.backend.types.customer
+package app_backend.types.customer
 
 import zio.schema.{DeriveSchema, Schema}
 

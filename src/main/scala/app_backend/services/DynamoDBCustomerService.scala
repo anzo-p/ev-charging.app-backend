@@ -1,7 +1,8 @@
-package app.backend.services
+package app_backend.services
 
-import app.backend.CustomerService
-import app.backend.types.customer.{Customer, CustomerIdAndRfidTag}
+import app_backend.CustomerService
+import app_backend.types.customer.Customer
+import app_backend.types.customer.CustomerProjections.CustomerIdAndRfidTag
 import shared.db.DynamoDBPrimitives
 import zio._
 import zio.dynamodb.DynamoDBQuery._

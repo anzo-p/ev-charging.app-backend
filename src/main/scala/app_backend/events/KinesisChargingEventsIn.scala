@@ -1,7 +1,7 @@
-package app.backend.events
+package app_backend.events
 
-import app.backend.types.chargingSession.ChargingSession
-import app.backend.{ChargingService, CustomerService}
+import app_backend.types.chargingSession.ChargingSession
+import app_backend.{ChargingService, CustomerService}
 import shared.events.{ChargingEventConsumer, ChargingEventProducer, DeadLetterProducer}
 import shared.types.chargingEvent.ChargingEvent
 import shared.types.enums.{EventInitiator, OutletDeviceState}
@@ -14,7 +14,7 @@ final case class KinesisChargingEventsIn(
     deadLetters: DeadLetterProducer
   ) extends ChargingEventConsumer {
 
-  val applicationName: String = "app-backend"
+  val applicationName: String = "app_backend"
 
   def follow: EventInitiator = EventInitiator.OutletBackend
 
@@ -23,9 +23,9 @@ final case class KinesisChargingEventsIn(
       case OutletDeviceState.DeviceRequestsCharging =>
         for {
           customerId <- customerService.getCustomerIdByRfidTag(data.recentSession.rfidTag)
-          session    <- ZIO.from(ChargingSession.fromEvent(customerId.get, data).copy(outletState = OutletDeviceState.Charging))
+          session    <- ZIO.from(ChargingSession.fromChargingEvent(customerId.get, data).copy(outletState = OutletDeviceState.Charging))
           _          <- chargingService.initialize(session)
-          _          <- toBackend.put(session.toEvent)
+          _          <- toBackend.put(session.toChargingEvent)
           // else NACK
         } yield ()
 

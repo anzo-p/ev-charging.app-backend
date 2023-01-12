@@ -1,7 +1,7 @@
-package app.backend.http
+package app_backend.http
 
-import app.backend.http.dto.{ChargingSessionDto, CreateChargingSessionDto}
-import app.backend.{ChargingService, CustomerService}
+import app_backend.http.dto.{ChargingSessionDto, CreateChargingSessionDto}
+import app_backend.{ChargingService, CustomerService}
 import shared.events.ChargingEventProducer
 import shared.http.BaseRoutes
 import shared.types.enums.OutletDeviceState
@@ -37,7 +37,7 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
           rfidTag <- customerService.getRfidTag(dto.customerId).orElseFail(invalidPayload("this customer doesn't exist"))
           session = dto.toModel.copy(rfidTag = rfidTag)
           _ <- chargingService.initialize(session).mapError(th => badRequest(th.getMessage))
-          _ <- toBackend.put(session.toEvent).mapError(serverError)
+          _ <- toBackend.put(session.toChargingEvent).mapError(serverError)
           // app will forward to poll for status reports
         } yield {
           Response(
@@ -68,7 +68,7 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
           sessionId <- validateUUID(id, "session").toEither.orFail(unProcessableEntity)
           session   <- chargingService.getSession(sessionId).mapError(th => badRequest(th.getMessage))
           _         <- chargingService.setStopRequested(session.sessionId).mapError(th => badRequest(th.getMessage))
-          _         <- toBackend.put(session.toEvent.copy(outletState = OutletDeviceState.AppRequestsStop)).mapError(serverError)
+          _         <- toBackend.put(session.toChargingEvent.copy(outletState = OutletDeviceState.AppRequestsStop)).mapError(serverError)
           // app will forward to poll for final report
         } yield {
           Response(Status.Ok, defaultHeaders)

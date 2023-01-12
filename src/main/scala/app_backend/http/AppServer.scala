@@ -1,4 +1,4 @@
-package app.backend.http
+package app_backend.http
 
 import zhttp.http.HttpApp
 import zhttp.service.Server

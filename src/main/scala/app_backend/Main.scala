@@ -1,8 +1,8 @@
-package app.backend
+package app_backend
 
-import app.backend.events.KinesisChargingEventsIn
-import app.backend.http.{AppServer, ChargingRoutes, CustomerRoutes}
-import app.backend.services.{DynamoDBChargingService, DynamoDBCustomerService}
+import app_backend.events.KinesisChargingEventsIn
+import app_backend.http.{AppServer, ChargingRoutes, CustomerRoutes}
+import app_backend.services.{DynamoDBChargingService, DynamoDBCustomerService}
 import nl.vroste.zio.kinesis.client.zionative.leaserepository.DynamoDbLeaseRepository
 import shared.events.kinesis.{KinesisChargingEventsOut, KinesisDeadLetters}
 import zio._
@@ -52,30 +52,22 @@ object Main extends ZIOAppDefault {
 }
 
 /*
-  sbt run -jvm-debug 9999
+  TODO
 
-  Consumer client initiates
+  some of the SQS consumer failures dont show up anywhere
+  - rename data to event in all consumers
+  - when outletState match against option that isnt found
+  - when state transition check failed
 
-  - initiate charging
-             consumer client  -> consumer backend -> post - start / stop charging for consumer at device
-             consumer backend -> charger backend  -> send - start / stop charging for consumer at device
-             charger backend  -> charger device   -> push - change status
+  SQSOutletDeviceMessagesIn.DeviceRequestsCharging payload without rfidTag does not fail but also doesnt do anything else either
 
-  - process billing
-  if start - charger backend  -> billing          -> send - initiate charging session
-  if stop  - charger backend  -> billing          -> send - charging session complete
-             charger backend  -> consumer backend -> send - ack start / stop
-             consumer backend -> consumer client  -> push - change status
-  if stop  - consumer client  -> billing          -> get  - tally
+  rest api route hierarchy needs be fixed
 
+  ChargingSession.purchaseChannel is wrongly presented in db, now json, should be scalar
 
-  Charger device initiates
+  handler logics are a bit spread out between controllers, models, handlers and services, which themselves are a mix between repo and service
 
-  - initiate charging
-             charger device   -> charger backend  -> post - start / stop charging for consumer at device
-             charger backend  -> consumer backend -> send - start / stop charging for consumer at device
+  there is no definitive way of passing handler errors as reponses to callers for change
 
-  - process billing
-  same as when Consumer client initiates
-  except that the ack start / stop is missing
+  Kinesis checkpoints
  */
