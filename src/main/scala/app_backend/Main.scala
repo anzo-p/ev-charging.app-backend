@@ -21,7 +21,8 @@ object Main extends ZIOAppDefault {
     program
       .provide(
         // aws config
-        AwsConfig.default,
+        AwsAccessConfig.live,
+        AwsConfig.configured(),
         NettyHttpClient.default,
         // dynamodb
         DynamoDb.live,
@@ -50,24 +51,3 @@ object Main extends ZIOAppDefault {
       case _                    => ZIO.succeed(())
     }.exitCode
 }
-
-/*
-  TODO
-
-  some of the SQS consumer failures dont show up anywhere
-  - rename data to event in all consumers
-  - when outletState match against option that isnt found
-  - when state transition check failed
-
-  SQSOutletDeviceMessagesIn.DeviceRequestsCharging payload without rfidTag does not fail but also doesnt do anything else either
-
-  rest api route hierarchy needs be fixed
-
-  ChargingSession.purchaseChannel is wrongly presented in db, now json, should be scalar
-
-  handler logics are a bit spread out between controllers, models, handlers and services, which themselves are a mix between repo and service
-
-  there is no definitive way of passing handler errors as reponses to callers for change
-
-  Kinesis checkpoints
- */

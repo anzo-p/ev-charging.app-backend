@@ -12,7 +12,7 @@ final case class CustomerRoutes(service: CustomerService) extends BaseRoutes {
 
   val routes: Http[Any, Throwable, Request, Response] =
     Http.collectZIO[Request] {
-      case Method.GET -> !! / "customers" / customer =>
+      case Method.GET -> !! / "api" / "customers" / customer =>
         (for {
           customerId <- validateUUID(customer, "customer").toEither.orFail(unProcessableEntity)
           him        <- service.getById(customerId).mapError(th => badRequest(th.getMessage))
@@ -26,7 +26,7 @@ final case class CustomerRoutes(service: CustomerService) extends BaseRoutes {
           )
         }).respond
 
-      case req @ Method.POST -> !! / "customers" =>
+      case req @ Method.POST -> !! / "api" / "customers" =>
         (for {
           body <- req.body.asString.mapError(serverError)
           dto  <- body.fromJson[CreateCustomer].orFail(invalidPayload)

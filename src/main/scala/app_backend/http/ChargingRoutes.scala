@@ -15,7 +15,7 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
 
   val routes: Http[Any, Throwable, Request, Response] =
     Http.collectZIO[Request] {
-      case Method.GET -> !! / "chargers" / "customer" / id / "history" =>
+      case Method.GET -> !! / "api" / "chargers" / "customer" / id / "history" =>
         (for {
           customerId <- validateUUID(id, "customer").toEither.orFail(unProcessableEntity)
           history    <- chargingService.getHistory(customerId).mapError(th => badRequest(th.getMessage))
@@ -29,7 +29,7 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
           )
         }).respond
 
-      case req @ Method.POST -> !! / "chargers" / "start" =>
+      case req @ Method.POST -> !! / "api" / "chargers" / "start" =>
         (for {
           body <- req.body.asString.mapError(serverError)
           dto  <- body.fromJson[CreateChargingSessionDto].orFail(invalidPayload)
@@ -49,7 +49,7 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
           )
         }).respond
 
-      case Method.GET -> !! / "chargers" / "session" / id =>
+      case Method.GET -> !! / "api" / "chargers" / "session" / id =>
         (for {
           sessionId <- validateUUID(id, "session").toEither.orFail(unProcessableEntity)
           session   <- chargingService.getSession(sessionId).mapError(th => badRequest(th.getMessage))
@@ -63,7 +63,7 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
           )
         }).respond
 
-      case Method.GET -> !! / "chargers" / "session" / id / "stop" =>
+      case Method.GET -> !! / "api" / "chargers" / "session" / id / "stop" =>
         (for {
           sessionId <- validateUUID(id, "session").toEither.orFail(unProcessableEntity)
           session   <- chargingService.getSession(sessionId).mapError(th => badRequest(th.getMessage))

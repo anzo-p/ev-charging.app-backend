@@ -14,7 +14,7 @@ final case class KinesisChargingEventsIn(
     deadLetters: DeadLetterProducer
   ) extends ChargingEventConsumer {
 
-  val applicationName: String = "app_backend"
+  val applicationName: String = "app-backend"
 
   def follow: EventInitiator = EventInitiator.OutletBackend
 
