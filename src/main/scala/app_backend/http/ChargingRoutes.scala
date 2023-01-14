@@ -15,20 +15,6 @@ final case class ChargingRoutes(customerService: CustomerService, chargingServic
 
   val routes: Http[Any, Throwable, Request, Response] =
     Http.collectZIO[Request] {
-      case Method.GET -> !! / "api" / "chargers" / "customer" / id / "history" =>
-        (for {
-          customerId <- validateUUID(id, "customer").toEither.orFail(unProcessableEntity)
-          history    <- chargingService.getHistory(customerId).mapError(th => badRequest(th.getMessage))
-        } yield {
-          Response(
-            Status.Created,
-            defaultHeaders,
-            Body.fromString {
-              history.map(ChargingSessionDto.fromModel).toJson
-            }
-          )
-        }).respond
-
       case req @ Method.POST -> !! / "api" / "chargers" / "start" =>
         (for {
           body <- req.body.asString.mapError(serverError)
