@@ -24,20 +24,16 @@ final case class KinesisChargingEventsIn(
         for {
           customerId <- customerService.getCustomerIdByRfidTag(data.recentSession.rfidTag)
           session    <- ZIO.from(ChargingSession.fromChargingEvent(customerId.get, data).copy(outletState = OutletDeviceState.Charging))
-          _          <- chargingService.initialize(session)
-          _          <- toBackend.put(session.toChargingEvent)
+          sessionId  <- chargingService.initialize(session)
+          _          <- toBackend.put(session.copy(sessionId = sessionId).toChargingEvent)
           // else NACK
         } yield ()
 
-      case OutletDeviceState.Charging =>
+      case OutletDeviceState.Charging | OutletDeviceState.ChargingFinished =>
         for {
-          _ <- chargingService.aggregateSessionTotals(data.copy(outletState = OutletDeviceState.Charging))
+          _ <- chargingService.updateSession(data)
         } yield ()
 
-      case OutletDeviceState.ChargingFinished =>
-        for {
-          _ <- chargingService.aggregateSessionTotals(data.copy(outletState = OutletDeviceState.ChargingFinished))
-        } yield ()
       case state =>
         for {
           _ <- ZIO.succeed(println(s"Something else $state"))

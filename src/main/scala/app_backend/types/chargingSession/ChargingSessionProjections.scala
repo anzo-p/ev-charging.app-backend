@@ -7,7 +7,7 @@ import java.util.UUID
 
 object ChargingSessionProjections {
 
-  final case class ChargingSessionsOfCustomer(customerId: UUID, sessionId: UUID, sessionState: OutletDeviceState)
+  final case class ChargingSessionsOfCustomer(outletId: UUID, outletState: OutletDeviceState)
 
   object ChargingSessionsOfCustomer {
     implicit lazy val schema: Schema[ChargingSessionsOfCustomer] =

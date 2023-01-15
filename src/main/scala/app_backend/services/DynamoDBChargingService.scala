@@ -27,18 +27,27 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
 
   override def schema: Schema[ChargingSession] = DeriveSchema.gen[ChargingSession]
 
-  private def getActiveSessions(customerId: UUID): ZIO[DynamoDBExecutor, Throwable, Int] =
+  private def getActiveSessions(customerId: UUID, outletId: UUID): ZIO[DynamoDBExecutor, Throwable, Int] =
     for {
-      query <- queryAll[ChargingSessionsOfCustomer](tableResource, $("customerId"), $("sessionId"), $("sessionState"))
+      query <- queryAll[ChargingSessionsOfCustomer](tableResource, $("outletId"), $("outletState"))
                 .indexName("ev-charging_charging-session-customerId_index")
                 .whereKey(PartitionKey("customerId") === customerId.toString)
+                // FIXME SortKey desc over startTime against now().minusHours(..) would be great
+                // but the library serializes OffsetDateTime to string so cannot
                 .execute
 
       result <- query
                  .runCollect
                  .map(
-                   _.toList.count(_.sessionState.in(
-                     Seq(OutletDeviceState.AppRequestsCharging, OutletDeviceState.Charging, OutletDeviceState.AppRequestsStop))))
+                   _.toList
+                     .filter(_.outletId == outletId)
+                     .count(_.outletState.in(Seq(
+                       OutletDeviceState.AppRequestsCharging,
+                       OutletDeviceState.DeviceRequestsCharging,
+                       OutletDeviceState.Charging,
+                       OutletDeviceState.AppRequestsStop,
+                       OutletDeviceState.DeviceRequestsStop
+                     ))))
     } yield result
 
   override def getHistory(customerId: UUID): Task[List[ChargingSession]] =
@@ -54,28 +63,28 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
       .reverse)
       .provideLayer(ZLayer.succeed(executor))
 
-  override def initialize(session: ChargingSession): Task[Unit] =
+  override def initialize(session: ChargingSession): Task[UUID] =
     (for {
-      already <- getActiveSessions(session.customerId)
+      already <- getActiveSessions(session.customerId, session.outletId)
       _       <- ZIO.fromEither(Either.cond(already == 0, (), new Error("customer already has active session")))
       _       <- put(tableResource, session).execute
-    } yield ())
+    } yield session.sessionId)
       .provideLayer(ZLayer.succeed(executor))
 
-  override def getSession(sessionId: UUID): Task[ChargingSession] =
+  override def get(sessionId: UUID): Task[ChargingSession] =
     getByPK(sessionId)
       .provideLayer(ZLayer.succeed(executor))
 
-  override def aggregateSessionTotals(status: ChargingEvent): Task[Unit] =
+  override def updateSession(event: ChargingEvent): Task[Unit] =
     (for {
-      sessionId <- ZIO.from(status.recentSession.sessionId).orElseFail(new Error("no session id"))
-      data      <- getByPK(sessionId).filterOrFail(_.mayTransitionTo(status.outletState))(new Error(cannotTransitionTo(status.outletState)))
+      sessionId <- ZIO.from(event.recentSession.sessionId).orElseFail(new Error("no session id"))
+      data      <- getByPK(sessionId).filterOrFail(_.mayTransitionTo(event.outletState))(new Error(cannotTransitionTo(event.outletState)))
 
       _ <- putByPK(
             data.copy(
-              outletState      = status.outletState,
-              endTime          = Some(status.recentSession.periodEnd.getOrElse(java.time.OffsetDateTime.now())),
-              powerConsumption = data.powerConsumption + status.recentSession.powerConsumption
+              outletState      = event.outletState,
+              endTime          = Some(event.recentSession.periodEnd.getOrElse(java.time.OffsetDateTime.now())),
+              powerConsumption = event.recentSession.powerConsumption
             ))
 
     } yield ())
