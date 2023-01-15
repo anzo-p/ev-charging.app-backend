@@ -66,6 +66,13 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
       .reverse)
       .provideLayer(ZLayer.succeed(executor))
 
+  override def setDeviceDenies(sessionId: UUID): Task[Unit] =
+    (for {
+      session <- getByPK(sessionId)
+      _       <- put(tableResource, session.copy(outletState = OutletDeviceState.DeviceDeniesCharging)).execute
+    } yield ())
+      .provideLayer(ZLayer.succeed(executor))
+
   override def initialize(session: ChargingSession): Task[UUID] =
     (for {
       session <- getActiveSession(session.customerId, session.outletId).flatMap {

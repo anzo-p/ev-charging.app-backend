@@ -9,6 +9,8 @@ import java.util.UUID
 trait ChargingService {
   def getHistory(customerId: UUID): Task[List[ChargingSession]]
 
+  def setDeviceDenies(sessionId: UUID): Task[Unit]
+
   def initialize(session: ChargingSession): Task[UUID]
 
   def get(sessionId: UUID): Task[ChargingSession]
