@@ -1,7 +1,7 @@
 package app_backend.http.dto
 
 import app_backend.types.chargingSession.ChargingSession
-import shared.types.enums.PurchaseChannel
+import app_backend.types.enums.PurchaseChannel
 import zio.json.{DeriveJsonCodec, JsonCodec}
 
 import java.util.UUID

@@ -1,8 +1,9 @@
 package app_backend.types.chargingSession
 
+import app_backend.types.enums.PurchaseChannel
 import shared.types.TimeExtensions.DateTimeSchemaImplicits
 import shared.types.chargingEvent.{ChargingEvent, EventSession}
-import shared.types.enums.{EventInitiator, OutletDeviceState, PurchaseChannel}
+import shared.types.enums.{EventInitiator, OutletDeviceState}
 import shared.types.outletStateMachine.OutletStateMachine
 import zio.schema.{DeriveSchema, Schema}
 
