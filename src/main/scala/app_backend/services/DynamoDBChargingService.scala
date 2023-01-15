@@ -8,14 +8,15 @@ import shared.types.TimeExtensions._
 import shared.types.chargingEvent.ChargingEvent
 import shared.types.enums.OutletDeviceState
 import shared.types.outletStateMachine.OutletStateMachine._
-import zio._
 import zio.dynamodb.DynamoDBQuery._
 import zio.dynamodb.PartitionKeyExpression.PartitionKey
 import zio.dynamodb.ProjectionExpression.$
 import zio.dynamodb._
 import zio.schema.{DeriveSchema, Schema}
+import zio.{Task, ZIO, ZLayer}
 
 import java.util.UUID
+import scala.concurrent.duration.DurationInt
 
 final case class DynamoDBChargingService(executor: DynamoDBExecutor)
     extends ChargingService
@@ -27,13 +28,13 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
 
   override def schema: Schema[ChargingSession] = DeriveSchema.gen[ChargingSession]
 
-  private def getActiveSessions(customerId: UUID, outletId: UUID): ZIO[DynamoDBExecutor, Throwable, Int] =
+  private def getActiveSession(customerId: UUID, outletId: UUID): ZIO[DynamoDBExecutor, Throwable, Option[UUID]] =
     for {
-      query <- queryAll[ChargingSessionsOfCustomer](tableResource, $("outletId"), $("outletState"))
-                .indexName("ev-charging_charging-session-customerId_index")
+      query <- queryAll[ChargingSessionsOfCustomer](tableResource, $("outletId"), $("outletState"), $("startTime"), $("sessionId"))
+                .indexName("ev-charging_active-charging-sessions_index")
                 .whereKey(PartitionKey("customerId") === customerId.toString)
-                // FIXME SortKey desc over startTime against now().minusHours(..) would be great
-                // but the library serializes OffsetDateTime to string so cannot
+                // FIXME SortKey desc over startTime against now().minusHours(..) would be necessary
+                // but aws error indicates that OffsetDateTime gets serialized as string, which cannot be sorted over as temporal quality
                 .execute
 
       result <- query
@@ -41,13 +42,15 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
                  .map(
                    _.toList
                      .filter(_.outletId == outletId)
-                     .count(_.outletState.in(Seq(
+                     .filter(_.startTime.isRecentUpTo(2.minutes))
+                     .find(_.outletState.in(Seq(
                        OutletDeviceState.AppRequestsCharging,
                        OutletDeviceState.DeviceRequestsCharging,
                        OutletDeviceState.Charging,
                        OutletDeviceState.AppRequestsStop,
                        OutletDeviceState.DeviceRequestsStop
-                     ))))
+                     )))
+                     .map(_.sessionId))
     } yield result
 
   override def getHistory(customerId: UUID): Task[List[ChargingSession]] =
@@ -65,9 +68,12 @@ final case class DynamoDBChargingService(executor: DynamoDBExecutor)
 
   override def initialize(session: ChargingSession): Task[UUID] =
     (for {
-      already <- getActiveSessions(session.customerId, session.outletId)
-      _       <- ZIO.fromEither(Either.cond(already == 0, (), new Error("customer already has active session")))
-      _       <- put(tableResource, session).execute
+      session <- getActiveSession(session.customerId, session.outletId).flatMap {
+                  case Some(sessionId) => getByPK(sessionId)
+                  case None            => ZIO.succeed(session)
+                }
+
+      _ <- put(tableResource, session).execute
     } yield session.sessionId)
       .provideLayer(ZLayer.succeed(executor))
 
